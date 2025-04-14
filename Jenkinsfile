@@ -1,21 +1,21 @@
 pipeline {
     agent {
         docker {
-            image 'maven:3.8.6-openjdk-17'
-            // Permet à l'agent d'accéder au démon Docker
+            image 'maven:3.8.6-openjdk-17-slim'
+            // Montage du socket Docker pour permettre la construction/poussée d'images
             args '-v /var/run/docker.sock:/var/run/docker.sock'
         }
     }
 
     environment {
-        // Nom de l'image Docker à utiliser sur Docker Hub
+        // Nom de l'image Docker sur Docker Hub
         DOCKER_IMAGE = 'noursoussia/ci-cd-pipeline'
     }
 
     stages {
         stage('Checkout') {
             steps {
-                // Récupération du code source depuis le SCM configuré
+                // Récupérer le code source depuis le SCM configuré
                 checkout scm
             }
         }
@@ -30,7 +30,7 @@ pipeline {
         stage('Docker Build & Push') {
             steps {
                 script {
-                    // Authentification sur Docker Hub en utilisant le bloc withCredentials
+                    // Authentification sur Docker Hub à l'aide des credentials
                     withCredentials([usernamePassword(
                         credentialsId: 'dockerhub-credentials',
                         usernameVariable: 'DOCKERHUB_USERNAME',
@@ -54,7 +54,7 @@ pipeline {
 
         stage('Clean up') {
             steps {
-                // Nettoyage des images locales pour libérer de l'espace
+                // Nettoyage des images locales pour libérer l'espace
                 sh "docker rmi ${DOCKER_IMAGE}:${BUILD_NUMBER} ${DOCKER_IMAGE}:latest"
             }
         }
@@ -62,7 +62,7 @@ pipeline {
 
     post {
         success {
-            // Publication des rapports de tests et archivage des artefacts (ex : .jar)
+            // Publication des rapports de tests et archivage des artefacts (par exemple, les .jar)
             junit '**/target/surefire-reports/TEST-*.xml'
             archiveArtifacts artifacts: 'target/*.jar', allowEmptyArchive: true
         }
