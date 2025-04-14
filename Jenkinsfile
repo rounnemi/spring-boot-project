@@ -48,12 +48,12 @@ pipeline {
         }
     }
 
-    post {
-        always {
-            // Nettoyer l'espace de travail en s'assurant que deleteDir() s'exécute dans un contexte de node
-            node {
-                deleteDir()
-            }
-        }
-    }
+  post {
+      always {
+          node('docker') {
+              deleteDir()
+          }
+      }
+  }
+
 }
