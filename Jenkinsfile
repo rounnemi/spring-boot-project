@@ -1,24 +1,37 @@
 pipeline {
-    agent any // Uses the Jenkins host directly
+    agent {
+        docker {
+            // Utilisez l'image dind qui contient la CLI Docker
+            image 'docker:20.10.8-dind'
+            // Montez le socket Docker du host dans le container
+            args '-v /var/run/docker.sock:/var/run/docker.sock'
+        }
+    }
 
     environment {
+        // Définir le nom complet de l'image Docker à utiliser sur Docker Hub
         DOCKER_IMAGE = 'noursoussia/ci-cd-pipeline'
     }
 
     stages {
         stage('Checkout') {
             steps {
+                // Vérifiez votre code depuis le SCM
                 checkout scm
             }
         }
         stage('Build') {
             steps {
+                // Construire l'application avec Maven
+                // Veillez à ce que l'image Docker utilisée contienne Maven ou installez-le au préalable,
+                // ou envisagez de séparer les builds Maven et Docker sur des agents différents.
                 sh 'mvn clean install'
             }
         }
         stage('Docker Build & Push') {
             steps {
                 script {
+                    // Connexion à Docker Hub en utilisant les identifiants stockés dans Jenkins
                     withCredentials([usernamePassword(
                         credentialsId: 'dockerhub-credentials',
                         usernameVariable: 'DOCKERHUB_USERNAME',
@@ -26,7 +39,9 @@ pipeline {
                     )]) {
                         sh "echo ${DOCKERHUB_PASSWORD} | docker login -u ${DOCKERHUB_USERNAME} --password-stdin"
                     }
+                    // Construire l'image Docker et la taguer comme "latest"
                     sh "docker build -t ${DOCKER_IMAGE}:latest ."
+                    // Pousser l'image Docker sur Docker Hub
                     sh "docker push ${DOCKER_IMAGE}:latest"
                 }
             }
@@ -35,7 +50,10 @@ pipeline {
 
     post {
         always {
-            cleanWs()
+            // Nettoyer l'espace de travail en s'assurant que deleteDir() s'exécute dans un contexte de node
+            node {
+                deleteDir()
+            }
         }
     }
 }
