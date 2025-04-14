@@ -1,5 +1,12 @@
 pipeline {
-    agent any
+    agent {
+        docker {
+            // Use an image that has docker CLI installed, e.g., docker:20.10.8
+            image 'docker:20.10.8'
+            // Mount the host's Docker socket into the container
+            args '-v /var/run/docker.sock:/var/run/docker.sock'
+        }
+    }
 
     environment {
         // Define the complete Docker image name to be used in Docker Hub
@@ -16,6 +23,8 @@ pipeline {
         stage('Build') {
             steps {
                 // Build the application using Maven
+                // Make sure the docker container image used has Maven installed or install it before your build,
+                // or consider splitting the Maven build and Docker build into separate agents.
                 sh 'mvn clean install'
             }
         }
@@ -28,7 +37,8 @@ pipeline {
                         usernameVariable: 'DOCKERHUB_USERNAME',
                         passwordVariable: 'DOCKERHUB_PASSWORD'
                     )]) {
-                        // Use your Docker Hub personal access token as the password
+                        // Note: The warning about Groovy string interpolation is only advisory.
+                        // You may consider using a different method to pass the secret if desired.
                         sh "echo ${DOCKERHUB_PASSWORD} | docker login -u ${DOCKERHUB_USERNAME} --password-stdin"
                     }
                     // Build the Docker image and tag it as "latest"
