@@ -1,11 +1,5 @@
 pipeline {
-    agent {
-        docker {
-            image 'maven:3.8.6-openjdk-17-slim'
-            // Montage du socket Docker pour permettre la construction/poussée d'images
-            args '-v /var/run/docker.sock:/var/run/docker.sock'
-        }
-    }
+   agent any
 
     environment {
         // Nom de l'image Docker sur Docker Hub
