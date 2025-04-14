@@ -1,11 +1,12 @@
 pipeline {
     agent {
-        docker {
-            // Utilisez l'image dind qui contient la CLI Docker
-            image 'docker:20.10.8-dind'
-            // Montez le socket Docker du host dans le container
-            args '-v /var/run/docker.sock:/var/run/docker.sock'
-        }
+   agent {
+       docker {
+           image 'maven:3.8.6-openjdk-17'
+           args '-v /var/run/docker.sock:/var/run/docker.sock'
+       }
+   }
+
     }
 
     environment {
