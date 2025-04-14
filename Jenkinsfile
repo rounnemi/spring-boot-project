@@ -1,5 +1,4 @@
 pipeline {
-    agent {
    agent {
        docker {
            image 'maven:3.8.6-openjdk-17'
@@ -7,7 +6,6 @@ pipeline {
        }
    }
 
-    }
 
     environment {
         // Définir le nom complet de l'image Docker à utiliser sur Docker Hub
