@@ -23,7 +23,12 @@ pipeline {
             steps {
                 script {
                     // Log in to Docker Hub using stored Jenkins credentials
-                    withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKERHUB_USERNAME', passwordVariable: 'DOCKERHUB_PASSWORD')]) {
+                    withCredentials([usernamePassword(
+                        credentialsId: 'dockerhub-credentials',
+                        usernameVariable: 'DOCKERHUB_USERNAME',
+                        passwordVariable: 'DOCKERHUB_PASSWORD'
+                    )]) {
+                        // Use your Docker Hub personal access token as the password
                         sh "echo ${DOCKERHUB_PASSWORD} | docker login -u ${DOCKERHUB_USERNAME} --password-stdin"
                     }
                     // Build the Docker image and tag it as "latest"
@@ -37,8 +42,8 @@ pipeline {
 
     post {
         always {
-            // Clean up the workspace after the build
-            cleanWs()
+            // Clean up the workspace after the build using deleteDir()
+            deleteDir()
         }
     }
 }
