@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spring-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: spring-demo
+  template:
+    metadata:
+      labels:
+        app: spring-demo
+    spec:
+      containers:
+        - name: app
+          image: noursoussia/ci-cd-pipeline:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: prod

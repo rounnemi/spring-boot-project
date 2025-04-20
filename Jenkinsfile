@@ -45,7 +45,14 @@ pipeline {
                 }
             }
         }
-
+     stage('Deploy to Kubernetes') {
+            steps {
+                script {
+                    sh 'kubectl apply -f k8s/deployment.yaml'
+                    sh 'kubectl apply -f k8s/service.yaml'
+                }
+            }
+        }
         stage('Clean up') {
             steps {
                 // Nettoyage des images locales pour libérer l'espace
