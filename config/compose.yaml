@@ -1,7 +1,6 @@
 version: "3.9"
 
 services:
-  # ───────────────── Docker‑in‑Docker (même container dind) ────────────────
   docker:
     image: docker:dind
     privileged: true
@@ -12,21 +11,40 @@ services:
     volumes:
       - docker_certs:/certs/client
 
-  # ───────────────── Jenkins ───────────────────────────────────────────────
+  k3s:
+    image: rancher/k3s:v1.32.2-k3s1
+    privileged: true
+    command:
+      - server
+      - --https-listen-port=6443
+      - --disable=traefik
+      - --write-kubeconfig=/output/kubeconfig.yaml
+      - --write-kubeconfig-mode=644
+      - --tls-san k3s
+    environment:
+      - K3S_TOKEN=supersecret
+    ports:
+      - "6443:6443"
+    volumes:
+      - k3s-data:/var/lib/rancher/k3s
+      - k3s-kubeconfig:/output
+    healthcheck:
+      test: ["CMD", "test", "-f", "/output/kubeconfig.yaml"]
+      interval: 10s
+      retries: 20
+
   jenkins:
     build: .
     depends_on:
       - docker
       - sonarqube
+      - k3s
     environment:
-      # Docker‑in‑Docker
       DOCKER_HOST: tcp://docker:2376
       DOCKER_CERT_PATH: /certs/client
       DOCKER_TLS_VERIFY: "1"
 
-      # Accès à votre cluster Minikube
-      KUBECONFIG: /home/jenkins/.kube/config
-      # Adresse de SonarQube (à utiliser dans vos pipelines)
+      KUBECONFIG: /home/jenkins/.kube/kubeconfig.yaml
       SONAR_HOST_URL: http://sonarqube:9000
     ports:
       - "8090:8080"
@@ -35,11 +53,11 @@ services:
       - jenkins_home:/var/jenkins_home
       - docker_certs:/certs/client:ro
       - ./scripts:/scripts
-      # Monte la config Minikube du poste hôte
-      - ${HOME}/.kube:/home/jenkins/.kube:ro
-      - ${HOME}/.minikube:/home/jenkins/.minikube:ro
+      - k3s-kubeconfig:/home/jenkins/.kube
+      # ⬇️ retirez les montages Minikube (plus utiles)
+      # - ${HOME}/.kube:/home/jenkins/.kube:ro
+      # - ${HOME}/.minikube:/home/jenkins/.minikube:ro
 
-  # ───────────────── Base PostgreSQL pour SonarQube ────────────────────────
   db:
     image: postgres:15-alpine
     environment:
@@ -49,11 +67,9 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
-  # ───────────────── SonarQube ─────────────────────────────────────────────
   sonarqube:
     image: sonarqube:lts
-    depends_on:
-      - db
+    depends_on: [db]
     environment:
       SONAR_JDBC_URL: jdbc:postgresql://db:5432/sonar
       SONAR_JDBC_USERNAME: sonar
@@ -63,7 +79,6 @@ services:
     volumes:
       - sonarqube_data:/opt/sonarqube/data
       - sonarqube_extensions:/opt/sonarqube/extensions
-    # Java 17 déjà inclus dans l’image officielle :contentReference[oaicite:1]{index=1}
 
 volumes:
   docker_certs:
@@ -71,3 +86,5 @@ volumes:
   postgres_data:
   sonarqube_data:
   sonarqube_extensions:
+  k3s-data:
+  k3s-kubeconfig:

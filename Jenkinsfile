@@ -2,21 +2,18 @@ pipeline {
    agent any
 
     environment {
-        // Nom de l'image Docker sur Docker Hub
         DOCKER_IMAGE = 'noursoussia/ci-cd-pipeline'
     }
 
     stages {
         stage('Checkout') {
             steps {
-                // Récupérer le code source depuis le SCM configuré
                 checkout scm
             }
         }
 
         stage('Build and test the app') {
             steps {
-                // Construction et tests avec Maven
                 sh 'mvn clean package'
             }
         }
@@ -45,6 +42,11 @@ pipeline {
                 }
             }
         }
+     stage('Fix Kubeconfig') {
+            steps {
+                sh 'sed -i "s/server: https:\\/\\/127.0.0.1:6443/server: https:\\/\\/k3s:6443/" /home/jenkins/.kube/kubeconfig.yaml'
+            }
+        }
      stage('Deploy to Kubernetes') {
             steps {
                 script {
@@ -55,7 +57,6 @@ pipeline {
         }
         stage('Clean up') {
             steps {
-                // Nettoyage des images locales pour libérer l'espace
                 sh "docker rmi ${DOCKER_IMAGE}:${BUILD_NUMBER} ${DOCKER_IMAGE}:latest"
             }
         }
@@ -63,7 +64,6 @@ pipeline {
 
     post {
         success {
-            // Publication des rapports de tests et archivage des artefacts (par exemple, les .jar)
             junit '**/target/surefire-reports/TEST-*.xml'
             archiveArtifacts artifacts: 'target/*.jar', allowEmptyArchive: true
         }
